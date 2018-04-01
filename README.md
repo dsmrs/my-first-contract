@@ -5,7 +5,7 @@
 ## Deploy Manual
 
 ```
-npm install web.js@0.20.0 solc
+npm install web3@0.20.0 solc
 ```
 
 ```
@@ -13,12 +13,12 @@ mkdir contracts && touch contracts/greeter.sol
 ```
 
 ```solidity
-// contracts/greeter.sol
+// contracts/GreetingsFactory.sol
 pragma solidity ^0.4.17;
 
 contract GreetingsFactory {
     string greeting;
-    address greeter
+    address greeter;
 
     function GreetingsFactory() public {
         setGreetings('Hey there!');
@@ -39,32 +39,51 @@ Install and open [Ganache](http://truffleframework.com/ganache/)
 
 in a node console:
 
-```bash
+```node
 > Web3 = require('web3')
-> web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
+> web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545')) // connect to the Ganache node
 > solc = require('solc')
-> sourceCode = fs.readFileSync('./contracts/greeter.sol').toString()
-> compiledCode = solc.compile(sourceCode);
-> contractABI = JSON.parse(compiledCode.contracts[':Greeter'].interface);
-> byteCode = compiledCode.contracts[':Greetings'].bytecode
-> greetingsContract = web3.eth.contract(contractABI); # Factory
-> greetingsDelpoyed = greetingsContract.new({data: byteCode, from: web3.eth.accounts[0], gas: 4700000}); # create contract on the blockchain
-> greetingsInstance = greetingsContract.at(greetingsDelpoyed.address);
+> sourceCode = fs.readFileSync('./contracts/GreetingsFactory.sol').toString() // get string of from the contract
+> compiledCode = solc.compile(sourceCode); // compile it
+> contractABI = JSON.parse(compiledCode.contracts[':GreetingsFactory'].interface); // interface of the contract
+> byteCode = compiledCode.contracts[':GreetingsFactory'].bytecode // store byteCode
+> greetingsContract = web3.eth.contract(contractABI); // get contract Factory from web3
+> greetingsDelpoyed = greetingsContract.new({data: byteCode, from: web3.eth.accounts[0], gas: 4700000}); // deploy contract on the ganache node
+> greetingsInstance = greetingsContract.at(greetingsDelpoyed.address); // get instance
+> greetingsInstance.getGreetings();
+['Hey there!', '0x627306090abaB3A6e1400e9345bC60c78a8BEf57']
+> greetingsInstance.setGreetings('Hello world', { from: web3.eth.accounts[1] });
+> greetingsInstance.getGreetings();
+['Hello world', '0xf17f52151EbEF6C7334FAD080c5704D77216b732']
 ```
 
 ## User Truffle as SmartContract Management
 
 install truffle globally
-```
+```zsh
 npm install -g truffle
 ```
 
 Init a truffle project with the webpack box
-```
+
+> This will delete this README file so please save it before
+
+```zsh
 truffle unbox webpack
 ```
 
-Change the html, the css and the javascript in the `app/` folder, remove all the contract in the `contracts/` folder except the `Migration.sol` and remove the second migration in the `migrations/` folder.
+Remove all the contract in the `contracts/` folder except the `Migration.sol` and the GreeingsFactory.sol that we've just created and change the second migration in the `migrations/` folder as follow:
+
+```javascript
+// migrations/2_deploy_contracts.js
+var GreetingsFactory = artifacts.require("./GreetingsFactory.sol");
+
+module.exports = function(deployer) {
+  deployer.deploy(GreetingsFactory);
+};
+```
+
+Change the html, the css and the javascript in the `app/` folder.
 
 ```HTML
 <!-- app/index.html -->
@@ -79,22 +98,26 @@ Change the html, the css and the javascript in the `app/` folder, remove all the
   <body>
     <div class="account-info">
       <h3>Your account</h3>
+      <!-- hard coded example to remove when javascript is done -->
       <p id="account">0x627306090abaB3A6e1400e9345bC60c78a8BEf57</p>
       <p id="accountBalance">10 ETH</p>
     </div>
     <h1>Greetings</h1>
     <div>
+      <!-- hard coded example to remove when javascript is done -->
       <span class="speech-bubble" id="greeting">
         Hello World
       </span>
     </div>
     <p class="greeter-head">🙋‍</p>
+    <!-- hard coded example to remove when javascript is done -->
     <p id="greeter">0x627306090abaB3A6e1400e9345bC60c78a8BEf57</p>
   </body>
 </html>
 ```
 
 ```css
+/* app/stylesheets/app.css */
 body {
   display: flex;
   justify-content: center;
@@ -140,6 +163,8 @@ h1 {
 ```
 
 ```javascript
+// app/javascripts/app.css
+
 // Import the page's CSS. Webpack will know what to do with it.
 import "../stylesheets/app.css";
 
@@ -147,7 +172,7 @@ import "../stylesheets/app.css";
 import Web3 from 'web3';
 import TruffleContract from 'truffle-contract'
 
-// Import our contract artifacts and turn them into usable abstractions.
+// Import our contract artifacts (ABI) and turn them into usable abstractions.
 import greetings_artifacts from '../../build/contracts/GreetingsFactory.json'
 
 
@@ -161,7 +186,7 @@ const App = {
       App.web3Provider = web3.currentProvider;
       window.web3 = new Web3(web3.currentProvider);
     } else {
-      // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
+      // fallback - use your fallback strategy (for us it's Ganache)
       App.web3Provider = new Web3.providers.HttpProvider("http://localhost:7545")
     }
     window.web3 = new Web3(App.web3Provider);
@@ -171,6 +196,7 @@ const App = {
   displayAccountInfo: function() {
     const account = document.getElementById('account');
     const accountBalance = document.getElementById('accountBalance');
+    // get the account of reference, by default the first one
     web3.eth.getCoinbase((err, coinbase) => {
       App.account = coinbase;
       account.innerText = App.account;
@@ -190,6 +216,7 @@ const App = {
     App.contracts.GreeingsFactory.deployed()
     .then((instance) => instance.getGreetings())
     .then(([greeting, greeter]) => {
+      // get greeting and put it on the HTML
       const greetingEl = document.getElementById('greeting');
       const greeterEl = document.getElementById('greeter');
       greetingEl.innerText = greeting
@@ -206,3 +233,37 @@ window.addEventListener('load', function() {
   App.init();
 });
 ```
+
+Run the migration. (be sure ganache is running!)
+
+```zsh
+truffle migrate --compile-all --reset --network development
+```
+
+Run the app. You should see 'Hey there!' on [http://localhost:8080](http://localhost:8080)
+
+> If you have the MetaMask extension, don't forget to disable it before!
+
+```zsh
+npm run dev
+```
+
+Run the truffle console on a new terminal window.
+
+```
+truffle console --network development
+```
+
+And set a new greeting from it
+```node
+> GreetingsFactory.deployed().then((instance) => { greetingsInstance = instance }) // get the instance with the truffle way
+> greetingsInstance.getGreetings();
+['Hey there!', '0x627306090abaB3A6e1400e9345bC60c78a8BEf57']
+> greetingsInstance.setGreetings('Hello world', { from: web3.eth.accounts[1] });
+> greetingsInstance.getGreetings();
+['Hello world', '0xf17f52151EbEF6C7334FAD080c5704D77216b732']
+```
+
+Got back to [http://localhost:8080](http://localhost:8080), You should see 'Hello world'. Congrats you've just finished your first DAPP. 🚀
+
+> The solution is on the branch `solution` of this repo.
