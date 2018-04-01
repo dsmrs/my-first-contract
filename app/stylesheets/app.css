@@ -1,0 +1,43 @@
+/* app/stylesheets/app.css */
+body {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
+  height: 100vh;
+  text-align: center;
+  font-family: "Open Sans", sans-serif;
+  color: #0f4137;
+  background-color: #e7f5f2;
+}
+h1 {
+  margin: 70px;
+}
+.speech-bubble {
+  color: #f9c7cf;
+  padding: 25px 20px;
+  position: relative;
+  background: #12776f;
+  border-radius: .4em;
+  margin-bottom: 20px;
+  max-width: 300px;
+}
+.speech-bubble:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+	border: 13px solid transparent;
+  border-top-color: #12776f;
+  border-bottom: 0;
+  border-left: 0;
+  margin-left: -6.5px;
+  margin-bottom: -13px;
+}
+.greeter-head {
+  font-size: 80px;
+  margin-top: 50px;
+  margin-bottom: 10px;
+}
